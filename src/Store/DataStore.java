@@ -1,27 +1,37 @@
 package Store;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 public class DataStore {
-    private final ConcurrentHashMap<String, String> store = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Long> expiryTimes = new ConcurrentHashMap<>();
+
+    private static class Entry {
+        final String value;
+        final Long expiryAt;
+
+        Entry(String value, Long expiryAt) {
+            this.value = value;
+            this.expiryAt = expiryAt;
+        }
+
+        boolean isExpired() {
+            return expiryAt != null && System.currentTimeMillis() > expiryAt;
+        }
+    }
+
+    private final LruCache<String, Entry> store;
+
+    public DataStore(int capacity) {
+        this.store = new LruCache<>(capacity);
+    }
 
     public void set(String key, String value) {
-        store.put(key, value);
-        expiryTimes.remove(key); // overwriting a key clears any old TTL
+        store.put(key, new Entry(value, null));
     }
 
     public String get(String key) {
-        if (isExpired(key)) {
-            store.remove(key);
-            expiryTimes.remove(key);
-            return null;
-        }
-        return store.get(key);
+        Entry entry = store.computeIfPresent(key, (k, e) -> e.isExpired() ? null : e);
+        return entry != null ? entry.value : null;
     }
 
     public boolean del(String key) {
-        expiryTimes.remove(key);
         return store.remove(key) != null;
     }
 
@@ -30,13 +40,8 @@ public class DataStore {
     }
 
     public boolean expire(String key, long seconds) {
-        if (!store.containsKey(key)) return false;
-        expiryTimes.put(key, System.currentTimeMillis() + seconds * 1000);
-        return true;
-    }
-
-    private boolean isExpired(String key) {
-        Long expiry = expiryTimes.get(key);
-        return expiry != null && System.currentTimeMillis() > expiry;
+        Entry updated = store.computeIfPresent(key,
+                (k, e) -> new Entry(e.value, System.currentTimeMillis() + seconds * 1000));
+        return updated != null;
     }
 }
