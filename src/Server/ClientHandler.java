@@ -3,6 +3,7 @@ package Server;
 import Protocol.Command;
 import Protocol.CommandParser;
 import Store.DataStore;
+import Store.CommandExecutor;
 
 import java.io.*;
 import java.net.Socket;
@@ -12,10 +13,12 @@ public class ClientHandler implements Runnable {
 
     private final Socket clientSocket;
     private final DataStore dataStore;
+    private final CommandExecutor executor;
 
-    public ClientHandler(Socket clientSocket, DataStore dataStore) {
+    public ClientHandler(Socket clientSocket, DataStore dataStore, CommandExecutor executor) {
         this.clientSocket = clientSocket;
         this.dataStore = dataStore;
+        this.executor = executor;
     }
 
     @Override
@@ -59,36 +62,25 @@ public class ClientHandler implements Runnable {
                 if (args.isEmpty()) return "ERR wrong number of arguments for 'echo'";
                 return String.join(" ", args);
 
-            case "SET":
-                if (args.size() < 2) return "ERR wrong number of arguments for 'set'";
-                dataStore.set(args.get(0), args.get(1));
-                return "OK";
-
             case "GET": {
                 if (args.size() != 1) return "ERR wrong number of arguments for 'get'";
                 String result = dataStore.get(args.get(0));
                 return result != null ? result : "(nil)";
             }
 
-            case "DEL":
-                if (args.size() != 1) return "ERR wrong number of arguments for 'del'";
-                return dataStore.del(args.get(0)) ? "1" : "0";
-
             case "EXISTS":
                 if (args.size() != 1) return "ERR wrong number of arguments for 'exists'";
                 return dataStore.exists(args.get(0)) ? "1" : "0";
 
-            case "EXPIRE":
-                if (args.size() != 2) return "ERR wrong number of arguments for 'expire'";
-                try {
-                    long seconds = Long.parseLong(args.get(1));
-                    return dataStore.expire(args.get(0), seconds) ? "1" : "0";
-                } catch (NumberFormatException e) {
-                    return "ERR value is not an integer or out of range";
-                }
-
             case "QUIT":
                 return "OK";
+
+            case "SET":
+            case "DEL":
+            case "EXPIRE": {
+                String result = executor.execute(command);
+                return result; // executor always handles these three
+            }
 
             default:
                 return "ERR unknown command '" + cmd + "'";

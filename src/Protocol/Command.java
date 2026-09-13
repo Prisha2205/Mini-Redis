@@ -26,4 +26,7 @@ public class Command {
     public String arg(int i) {
         return args.get(i);
     }
+    public String toLogString() {
+        return name + " " + String.join(" ", args);
+    }
 }

@@ -44,4 +44,7 @@ public class DataStore {
                 (k, e) -> new Entry(e.value, System.currentTimeMillis() + seconds * 1000));
         return updated != null;
     }
+    public void setExpiryAt(String key, long absoluteTimestampMillis) {
+        store.computeIfPresent(key, (k, e) -> new Entry(e.value, absoluteTimestampMillis));
+    }
 }
