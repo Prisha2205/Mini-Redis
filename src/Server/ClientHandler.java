@@ -7,6 +7,7 @@ import Store.CommandExecutor;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class ClientHandler implements Runnable {
@@ -26,10 +27,8 @@ public class ClientHandler implements Runnable {
         String clientAddress = clientSocket.getRemoteSocketAddress().toString();
 
         try (
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(clientSocket.getInputStream()));
-                PrintWriter out = new PrintWriter(
-                        new OutputStreamWriter(clientSocket.getOutputStream()), true)
+                InputStream in = new BufferedInputStream(clientSocket.getInputStream());
+                OutputStream out = clientSocket.getOutputStream()
         ) {
             Command command;
             while ((command = CommandParser.parseCommand(in)) != null) {
@@ -46,7 +45,7 @@ public class ClientHandler implements Runnable {
 
                 // Responses already contain their RESP line terminators.
                 // Use print() so no extra line separator is appended.
-                out.print(response);
+                out.write(response.getBytes(StandardCharsets.UTF_8));
                 out.flush();
 
                 if (command.getName().equals("QUIT")) break;
@@ -75,7 +74,8 @@ public class ClientHandler implements Runnable {
             case "ECHO":
                 if (args.isEmpty()) return "-ERR wrong number of arguments for 'echo'\r\n";
                 String e= String.join(" ", args);
-                return "$" + e.length() + "\r\n" + e + "\r\n";
+                int echoLength = e.getBytes(StandardCharsets.UTF_8).length;
+                return "$" + echoLength + "\r\n" + e + "\r\n";
 
             case "GET": {
                 if (args.size() != 1) return "-ERR wrong number of arguments for 'get'\r\n";
@@ -83,7 +83,8 @@ public class ClientHandler implements Runnable {
                 if (result == null) {
                     return "$-1\r\n"; // RESP representation for nil / null
                 }
-                return "$" + result.length() + "\r\n" + result + "\r\n";
+                int valueLength = result.getBytes(StandardCharsets.UTF_8).length;
+                return "$" + valueLength + "\r\n" + result + "\r\n";
             }
 
             case "EXISTS":
