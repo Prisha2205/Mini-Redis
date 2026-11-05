@@ -29,7 +29,7 @@ public class CommandExecutor {
                 return "+OK\r\n";
 
             case "DEL": {
-                if (args.size() != 1) return "ERR wrong number of arguments for 'del'";
+                if (args.size() != 1) return "-ERR wrong number of arguments for 'del'\r\n";
                 boolean removed = dataStore.del(args.get(0));
                 if (removed) aofWriter.log(command.toLogString());
                 return ":" + (removed ? 1 : 0) + "\r\n";
