@@ -34,18 +34,17 @@ public class ClientHandler implements Runnable {
             Command command;
             while ((command = CommandParser.parseCommand(in)) != null) {
                 String response;
-                try {
+                try {//this try-catch block handles null pointer or random exceptions-> idk what exactly READ!!
                     response = dispatch(command);
                 } catch (RuntimeException e) {
                     System.out.println(
                             "Error handling " + command.getName() + ": " + e
                     );
 
-                    response = "-ERR internal error\\r\\n";
+                    response = "ERR internal error";
                 }
-
                 // Responses already contain their RESP line terminators.
-                // print() prevents println() from appending an extra newline.
+                // Use print() so no extra line separator is appended.
                 out.print(response);
                 out.flush();
 
@@ -69,12 +68,12 @@ public class ClientHandler implements Runnable {
 
         switch (cmd) {
             case "PING":
-                String pong = args.isEmpty() ? "PONG" : args.get(0);
+                String pong= args.isEmpty() ? "PONG" : args.get(0);
                 return "+" + pong + "\\r\\n";
 
             case "ECHO":
-                if (args.isEmpty()) return "-ERR wrong number of arguments for 'echo'\\r\\n";
-                String e = String.join(" ", args);
+                if (args.isEmpty()) return "ERR wrong number of arguments for 'echo'";
+                String e= String.join(" ", args);
                 return "$" + e.length() + "\\r\\n" + e + "\\r\\n";
 
             case "GET": {
