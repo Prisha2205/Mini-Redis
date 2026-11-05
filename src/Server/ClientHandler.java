@@ -41,7 +41,7 @@ public class ClientHandler implements Runnable {
                             "Error handling " + command.getName() + ": " + e
                     );
 
-                    response = "ERR internal error";
+                    response = "-ERR internal error\\r\\n";
                 }
 
                 // Responses already contain their RESP line terminators.
