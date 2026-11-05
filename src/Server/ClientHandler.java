@@ -44,7 +44,7 @@ public class ClientHandler implements Runnable {
                 }
 
                 // Responses already contain their RESP line terminators.
-                // Use print() so no extra line separator is appended.
+                // Write bytes directly so no extra line separator is appended.
                 out.write(response.getBytes(StandardCharsets.UTF_8));
                 out.flush();
 
