@@ -41,7 +41,7 @@ public class ClientHandler implements Runnable {
                             "Error handling " + command.getName() + ": " + e
                     );
 
-                    response = "-ERR internal error\\r\\n";
+                    response = "-ERR internal error\r\n";
                 }
 
                 // Responses already contain their RESP line terminators.
@@ -73,7 +73,7 @@ public class ClientHandler implements Runnable {
                 return "+" + pong + "\r\n";
 
             case "ECHO":
-                if (args.isEmpty()) return "ERR wrong number of arguments for 'echo'";
+                if (args.isEmpty()) return "-ERR wrong number of arguments for 'echo'\r\n";
                 String e= String.join(" ", args);
                 return "$" + e.length() + "\r\n" + e + "\r\n";
 
