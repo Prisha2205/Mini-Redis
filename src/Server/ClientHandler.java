@@ -33,8 +33,18 @@ public class ClientHandler implements Runnable {
         ) {
             Command command;
             while ((command = CommandParser.parseCommand(in)) != null) {
-                String response = dispatch(command);
+                String response;
+                try {//this try-catch block handles null pointer or random exceptions-> idk what exactly READ!!
+                    response = dispatch(command);
+                } catch (RuntimeException e) {
+                    System.out.println(
+                            "Error handling " + command.getName() + ": " + e
+                    );
+
+                    response = "ERR internal error";
+                }
                 out.println(response);
+                out.flush();
 
                 if (command.getName().equals("QUIT")) break;
             }
@@ -56,24 +66,29 @@ public class ClientHandler implements Runnable {
 
         switch (cmd) {
             case "PING":
-                return args.isEmpty() ? "PONG" : args.get(0);
+                String pong= args.isEmpty() ? "PONG" : args.get(0);
+                return "+" + pong + "\r\n";
 
             case "ECHO":
                 if (args.isEmpty()) return "ERR wrong number of arguments for 'echo'";
-                return String.join(" ", args);
+                String e= String.join(" ", args);
+                return "$" + e.length() + "\r\n" + e + "\r\n";
 
             case "GET": {
-                if (args.size() != 1) return "ERR wrong number of arguments for 'get'";
+                if (args.size() != 1) return "-ERR wrong number of arguments for 'get'\r\n";
                 String result = dataStore.get(args.get(0));
-                return result != null ? result : "(nil)";
+                if (result == null) {
+                    return "$-1\r\n"; // RESP representation for nil / null
+                }
+                return "$" + result.length() + "\r\n" + result + "\r\n";
             }
 
             case "EXISTS":
-                if (args.size() != 1) return "ERR wrong number of arguments for 'exists'";
-                return dataStore.exists(args.get(0)) ? "1" : "0";
+                if (args.size() != 1) return "-ERR wrong number of arguments for 'exists'\r\n";
+                return ":" + (dataStore.exists(args.get(0)) ? 1 : 0) + "\r\n";
 
             case "QUIT":
-                return "OK";
+                return "+OK\r\n";
 
             case "SET":
             case "DEL":
@@ -83,7 +98,7 @@ public class ClientHandler implements Runnable {
             }
 
             default:
-                return "ERR unknown command '" + cmd + "'";
+                return "-ERR unknown command '" + cmd + "'\r\n";
         }
     }
 }

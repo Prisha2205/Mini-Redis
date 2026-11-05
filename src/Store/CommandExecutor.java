@@ -16,26 +16,27 @@ public class CommandExecutor {
     }
 
     // returns null if this command isn't a mutating command this executor handles
-    public String execute(Command command) {
+    public synchronized String execute(Command command) {
         String cmd = command.getName();
         List<String> args = command.getArgs();
 
         switch (cmd) {
             case "SET":
-                if (args.size() < 2) return "ERR wrong number of arguments for 'set'";
-                dataStore.set(args.get(0), args.get(1));
+                if (args.size() < 2) return "-ERR wrong number of arguments for 'set'\r\n";
+                String value = String.join(" ", args.subList(1, args.size()));
+                dataStore.set(args.get(0),value);
                 aofWriter.log(command.toLogString());
-                return "OK";
+                return "+OK\r\n";
 
             case "DEL": {
                 if (args.size() != 1) return "ERR wrong number of arguments for 'del'";
                 boolean removed = dataStore.del(args.get(0));
                 if (removed) aofWriter.log(command.toLogString());
-                return removed ? "1" : "0";
+                return ":" + (removed ? 1 : 0) + "\r\n";
             }
 
             case "EXPIRE": {
-                if (args.size() != 2) return "ERR wrong number of arguments for 'expire'";
+                if (args.size() != 2) return "-ERR wrong number of arguments for 'expire'\r\n";
                 try {
                     long seconds = Long.parseLong(args.get(1));
                     boolean success = dataStore.expire(args.get(0), seconds);
@@ -43,9 +44,9 @@ public class CommandExecutor {
                         long expiryTimestamp = System.currentTimeMillis() + seconds * 1000;
                         aofWriter.log("EXPIRE " + args.get(0) + " " + expiryTimestamp + " ABS");
                     }
-                    return success ? "1" : "0";
+                    return ":" + (success ? 1 : 0) + "\r\n";
                 } catch (NumberFormatException e) {
-                    return "ERR value is not an integer or out of range";
+                    return "-ERR value is not an integer or out of range\r\n";
                 }
             }
 

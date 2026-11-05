@@ -6,7 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CommandParser {
-
+    private static final int MAX_ARGS = 1024;
+    private static final int MAX_BULK_LEN = 1024 * 1024; // 1 MB per value
     /**
      * Reads one command from the stream. Returns null on clean EOF.
      * Supports RESP arrays (*N\r\n$len\r\ndata\r\n ...) and, as a fallback,
@@ -38,6 +39,9 @@ public class CommandParser {
             throw new IOException("Invalid RESP array header: " + header);
         }
         if (numArgs <= 0) return new ArrayList<>();
+        if (numArgs > MAX_ARGS) {
+            throw new IOException("Too many arguments: " + numArgs);
+        }
 
         List<String> tokens = new ArrayList<>(numArgs);
         for (int i = 0; i < numArgs; i++) {
@@ -49,6 +53,9 @@ public class CommandParser {
             if (len == -1) {
                 tokens.add(null);
                 continue;
+            }
+            if (len < 0 || len > MAX_BULK_LEN) {
+                throw new IOException("Invalid bulk length: " + len);
             }
 
             char[] buf = new char[len];

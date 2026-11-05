@@ -29,19 +29,25 @@ public class AofReplayer {
         }
 
         int count = 0;
+        int skipped=0;//adding feature to skip replay of commands that do not make sense
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
 
-                replayLine(line.trim());
-                count++;
+                try {
+                    replayLine(line.trim());
+                    count++;
+                } catch (RuntimeException e) {
+                    skipped++;
+                    System.out.println("Skipping bad AOF line: " + line);
+                }
             }
         } catch (IOException e) {
             System.out.println("Error reading AOF file: " + e.getMessage());
         }
 
-        System.out.println("Replayed " + count + " commands from AOF.");
+        System.out.println("Replayed " + count + " commands from AOF (" + skipped + " skipped).");
     }
 
     private void replayLine(String line) {
